@@ -71,6 +71,7 @@ Chaque correcteur peut aussi être appelé seul :
 | `echelle_reference.m` | Facteur d'échelle signé par rapport à la référence (valeur efficace et phase) |
 | `trace_resultats.m` | Tracés communs : spectres et correction |
 | `demo.m` | Démonstration complète sans interface |
+| `ihm_code.m` | Interface App Designer (code extrait) |
 
 ### Images
 
@@ -88,9 +89,37 @@ Ces captures proviennent de l'interface d'origine, avant les corrections listée
 
 ![Rapport d'analyse](images/rapport-analyse.png)
 
+### Interface App Designer
+
+`ihm_code.m` contient le code extrait de l'application App Designer, alignée sur les fonctions corrigées. Il se lance avec `ihm_code` (MATLAB R2019b ou plus récent pour `tiledlayout` et `exportgraphics`, utilisés par l'export PDF). Les éléments décoratifs (images, son) ont été retirés : il ne reste que les graphiques, les curseurs, les boutons et les champs.
+
+Le fichier .mlapp n'est pas publié car il intègre des visuels sous droits ; une version nettoyée sera ajoutée.
+
+L'interface comporte 7 onglets :
+
+| Onglet | Contenu |
+|---|---|
+| **Accueil** | Titre du projet et résumé des onglets |
+| **Signal** | Curseurs M, A1–A3, f1–f3 et fe ; tracé du signal de référence |
+| **Erreur** | Choix de la déformation, linéaire (OFFSET, Gain, Gain + OFFSET, OFFSET + Gain) ou non linéaire (exponentielle, logarithmique), réglage de P0/P1, tracé du signal d'origine et du signal déformé |
+| **FFT** | Spectre du signal et fréquence fondamentale (raie dominante hors 0 Hz) |
+| **Estimation** | Choix du correcteur, spectres du signal de base et du signal déformé, valeurs estimées de P0 et P1 |
+| **Correction** | Signal d'origine et signal corrigé |
+| **Option** | Mode debug (figures supplémentaires : signal généré, signal déformé, composantes f1, f2, f3), export CSV (temps et signal déformé) et export PDF (rapport A4 avec les quatre graphiques) |
+
+**Écarts entre l'IHM d'origine et les fonctions corrigées**, repris dans `ihm_code.m` :
+
+1. **Ordre des paramètres non linéaires** : l'onglet Estimation appelait `correcteExponentielle(..., lambda, mu, ...)` et `correcteLogarithmique(..., lambda, mu, ...)`, alors que l'onglet Erreur passait `deform_signal(s, choix, mu, lambda)`. Les deux onglets utilisent maintenant `(P0, P1)` dans l'ordre de `deform_signal`. Les curseurs μ et λ sont renommés P0 et P1.
+2. **Sorties des correcteurs non linéaires** : ils renvoient `[P0_estime, P1_estime]` et non plus `[lambda, mu]`. Les champs « OFFSET estimer » et « GAIN estimer » deviennent « P0 estimé » et « P1 estimé » (pour les déformations linéaires, P0 est l'offset et P1 le gain). Le contournement `double(real(lambda_m(1)))`, qui masquait les valeurs complexes de l'ancien logarithme, est supprimé.
+3. **Fonction `spectre` absente du dépôt** : l'onglet FFT appelait `spectre(ax, s, fe)`. Le calcul est intégré à `ihm_code.m`, avec un spectre normalisé par N comme dans `trace_resultats.m`.
+4. **Erreurs explicites** : les correcteurs signalent maintenant un gain nul, un P0 nul (exponentielle) ou l'absence d'harmonique. L'IHM les intercepte et les affiche dans une boîte de dialogue.
+5. **Hypothèses des estimateurs** : les fréquences Fi sont arrondies à l'entier (curseurs de 1 à 10 Hz) ; fe est arrondie et limitée à 25–200 Hz au lieu de 0–100 Hz (fe = 0 était remplacée par 1). Les valeurs par défaut sont celles de `demo.m` (M = 2, Ai = [5 3 2], Fi = [4 6 7], fe = 100) au lieu de zéro.
+6. **Libellés** : « OSSFET » devient « OFFSET » (boutons, curseur et tests du `switch`), et « Exporter un .cvs » devient « Exporter un .csv ».
+7. **Divers** : la FFT était recalculée deux fois à chaque changement de curseur ; les callbacks vides sont supprimés ; la classe est renommée `ihm_code` pour correspondre au nom du fichier.
+
 ### Contexte
 
-Ce projet a été réalisé en équipe de trois dans le cadre de l'ECUE 325 à l'EPISEN. L'interface App Designer n'a pas été conservée : seules les fonctions sont publiées ici.
+Ce projet a été réalisé en équipe de trois dans le cadre de l'ECUE 325 à l'EPISEN.
 
 ### Bugs corrigés après le rendu
 
@@ -186,6 +215,7 @@ Each corrector can also be called on its own:
 | `echelle_reference.m` | Signed scale factor relative to the reference (RMS and phase) |
 | `trace_resultats.m` | Shared plots: spectra and correction |
 | `demo.m` | Full demonstration without a GUI |
+| `ihm_code.m` | App Designer interface (extracted code) |
 
 ### Images
 
@@ -195,9 +225,37 @@ These screenshots come from the original interface, before the fixes listed belo
 - `images/correction-gain.png`: gain correction, original signal (dashed blue) vs corrected signal (green)
 - `images/rapport-analyse.png`: exported analysis report (original, distorted, spectrum, corrected)
 
+### App Designer interface
+
+`ihm_code.m` contains the code extracted from the App Designer application, aligned with the fixed functions. Run it with `ihm_code` (MATLAB R2019b or later for `tiledlayout` and `exportgraphics`, used by the PDF export). Decorative elements (images, sound) have been removed: only the plots, sliders, buttons and fields remain.
+
+The .mlapp file is not published because it embeds copyrighted visuals; a cleaned-up version will be added.
+
+The interface has 7 tabs:
+
+| Tab | Content |
+|---|---|
+| **Accueil** (Home) | Project title and summary of the tabs |
+| **Signal** | M, A1–A3, f1–f3 and fe sliders; plot of the reference signal |
+| **Erreur** (Error) | Choice of distortion, linear (OFFSET, Gain, Gain + OFFSET, OFFSET + Gain) or non-linear (exponential, logarithmic), P0/P1 settings, plot of the original and distorted signals |
+| **FFT** | Signal spectrum and fundamental frequency (dominant line above 0 Hz) |
+| **Estimation** | Choice of corrector, spectra of the base and distorted signals, estimated P0 and P1 |
+| **Correction** | Original and corrected signals |
+| **Option** | Debug mode (extra figures: generated signal, distorted signal, f1, f2, f3 components), CSV export (time and distorted signal) and PDF export (A4 report with the four plots) |
+
+**Differences between the original GUI and the fixed functions**, applied in `ihm_code.m`:
+
+1. **Order of the non-linear parameters**: the Estimation tab called `correcteExponentielle(..., lambda, mu, ...)` and `correcteLogarithmique(..., lambda, mu, ...)`, while the Error tab passed `deform_signal(s, choix, mu, lambda)`. Both tabs now use `(P0, P1)` in the `deform_signal` order. The μ and λ sliders are renamed P0 and P1.
+2. **Outputs of the non-linear correctors**: they return `[P0_estime, P1_estime]` instead of `[lambda, mu]`. The "OFFSET estimer" and "GAIN estimer" fields become "P0 estimé" and "P1 estimé" (for linear distortions, P0 is the offset and P1 the gain). The `double(real(lambda_m(1)))` workaround, which hid the complex values of the old logarithm, is removed.
+3. **`spectre` function missing from the repository**: the FFT tab called `spectre(ax, s, fe)`. The computation is now built into `ihm_code.m`, with the spectrum normalised by N as in `trace_resultats.m`.
+4. **Explicit errors**: the correctors now report a zero gain, a zero P0 (exponential) or a missing harmonic. The GUI catches these errors and shows them in a dialog box.
+5. **Estimator assumptions**: the Fi frequencies are rounded to integers (sliders from 1 to 10 Hz); fe is rounded and limited to 25–200 Hz instead of 0–100 Hz (fe = 0 used to be replaced by 1). The default values are those of `demo.m` (M = 2, Ai = [5 3 2], Fi = [4 6 7], fe = 100) instead of zero.
+6. **Labels**: "OSSFET" becomes "OFFSET" (buttons, slider and `switch` cases), and "Exporter un .cvs" becomes "Exporter un .csv".
+7. **Miscellaneous**: the FFT was computed twice on every slider change; empty callbacks are removed; the class is renamed `ihm_code` to match the file name.
+
 ### Context
 
-This project was carried out by a team of three as part of course unit ECUE 325 at EPISEN. The App Designer interface was not kept: only the functions are published here.
+This project was carried out by a team of three as part of course unit ECUE 325 at EPISEN.
 
 ### Bugs fixed after submission
 
